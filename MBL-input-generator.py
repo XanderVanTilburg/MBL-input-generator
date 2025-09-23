@@ -2,38 +2,16 @@ import pandas as pd
 import re
 import os
 
-def config():
-    def write_config_file():
-        while True:
-            CELEXpath = input("Path to CELEX file in CSV format: ").strip().strip('"').strip("'")
-            if CELEXpath.lower().endswith(".csv") and os.path.exists(CELEXpath):
-                with open(os.path.join(os.path.dirname(__file__), "config.txt"), mode="w") as f:
-                    f.write(CELEXpath)
-                break
-            elif not CELEXpath.lower().endswith(".csv"):
-                print("File not recognized as a CSV file.")
-            elif not os.path.exists(CELEXpath):
-                print("File does not exist.")
-        return CELEXpath
-    if os.path.exists(os.path.join(os.path.dirname(__file__), "config.txt")):
-        with open(os.path.join(os.path.dirname(__file__), "config.txt"), mode="r") as f:
-            CELEXpath = f.read()
-        if not os.path.exists(CELEXpath):
-            CELEXpath = write_config_file()
-    else:
-        CELEXpath = write_config_file()
-    return CELEXpath
-
-def prepare_input(input_path, CELEXpath):
+def prepare_input():
     try:
-        input_df = pd.read_csv(input_path, header=None, names=["Word"])
+        input_df = pd.read_csv("lexicon.csv", header=None, names=["Word"])
     except:
-        print("Lexicon file not correctly formatted.")
+        print("lexicon.csv not correctly formatted.")
         quit()
     try:
-        CELEX = pd.read_csv(CELEXpath).drop(labels=["IdNum", "Inl", "IdNumLemma","PhonCVBR", "PhonSylBCLX"], axis=1).drop_duplicates()
+        CELEX = pd.read_csv("dpw.csv").drop(labels=["IdNum", "Inl", "IdNumLemma","PhonCVBR", "PhonSylBCLX"], axis=1).drop_duplicates()
     except:
-        print("CELEX file not correctly formatted.")
+        print("dpw.csv not correctly formatted.")
         quit()
     input_df = pd.merge(input_df, CELEX, on="Word", how="left")
     return input_df
@@ -90,15 +68,12 @@ def final_letter(input_df):
     return input_df
 
 if __name__ == "__main__":
-    configure = config()
-    while True:
-        path_input = input("Path to lexicon file in TXT format: ").strip().strip('"').strip("'")
-        if not path_input.lower().endswith(".txt"):
-            print("File not recognized as a TXT file.")
-        elif not os.path.exists(path_input):
-            print("File does not exist.")
-        else:
-            break
+    if not os.path.exists("dpw.csv"):
+        print("Could not find dpw.csv")
+    if not os.path.exists("lexicon.csv"):
+        print("Could not find lexicon.csv")
+    if not os.path.exists("dpw.csv") or not os.path.exists("lexicon.csv"):
+        quit()
     while True:
         stress_limiter = input("Number of syllables in stress analysis (number/ALL): ")
         if stress_limiter.isdigit() or stress_limiter.upper() == "ALL":
@@ -114,11 +89,11 @@ if __name__ == "__main__":
     path_output = input("Name of output file: ").strip().strip('"').strip("'")
     if not path_output.lower().endswith(".csv"):
         path_output += ".csv"
-    input_df = prepare_input(path_input, configure)
+    input_df = prepare_input()
     stress_dict, transcription_dict = parse_phonetic_transcription(input_df)
     stress_dict, transcription_dict = padding(stress_dict, transcription_dict)
     input_df = merge_output(stress_dict, transcription_dict, input_df, stress_limiter, syllable_limiter)
     if finallettersetting == "y":
         input_df = final_letter(input_df)
-    input_df.to_csv(path_or_buf=os.path.join(os.path.dirname(path_input), path_output), header=False, index=False)
-    print(f"Finished successfully. Output written to {os.path.join(os.path.dirname(path_input), path_output)}")
+    input_df.to_csv(path_or_buf=path_output, header=False, index=False)
+    print(f"Finished successfully. Output written to {path_output}")
