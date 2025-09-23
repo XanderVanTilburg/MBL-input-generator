@@ -1,13 +1,15 @@
+# MBL input generator
+
 MBL input generator is a short Python script that takes a wordlist as input and returns a .csv file containing stress patterns, final letters, and phonetic transcriptions in DISC for each word. The file can then be used as a training set for memory-based learners such as TiMBL and AML. 
 
-Requirements: 
+## Requirements: 
 - A file named dpw.csv containing phonological information extracted from the CELEX-2 database (https://catalog.ldc.upenn.edu/LDC96L14), and is simply the dpw.cd file converted to a readible format. This file is not uploaded to the repo because I am not the copyright holder.
 - A file named lexicon_singulars.csv containing a list of singular word forms found in the corpus of your choice.
 - A file named lexicon_plurals.csv containg a list of plural word forms found in the corpus of your choice.
 
 The script will connect the words in lexicon_singular.csv to the phonological transcriptions of their pronunciation as attested in CELEX. It then splits these transcriptions to ensure that the onset, nucleus and coda of each syllable are contained in a separate cell. The script also extracts the stress pattern of the word from the transcription. Finally, the script will look up which plural morphemes are combined with the singulars and write this value to a new column. Words with irregular plurals (i.e. not combined with 's' or '(e)n') are dropped from the dataset, and words with variable plurals are labeled 'VAR'.
 
-Some of the behavior of the script can be modified when it runs:
+## Settings:
 - The number of syllables for which the stress pattern is reported. When X is passed, the script will return the stress pattern for the last X syllables of each word. When ALL is passed, the script will return the stress pattern for all syllables of each word. This variable is coded in a way that all words will align, which means that for each word that does not contain the same amount of syllables as the word with the most syllables in the input file, a number of dummy unstressed syllables will be inserted in the dataset equal to the difference.
 - The number of syllables for which the transcription is reported. This setting behaves the same as the setting for reporting stress patterns.
 - Collapsing variable pronunciations. When CELEX contains more than one possible pronunciation for a word, these words will appear more than once in the dataset. This can produce unwanted behavior for the memory-based learners. When multiple pronunciations are collapsed, the first reported pronunciation of a word in CELEX is retained and all other transcriptions are discarded [MAKE SCRIPT RETAIN THE PRONUNCIATION OF THE NOUN VERSION VS THE VERB VERSION].
