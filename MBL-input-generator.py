@@ -5,17 +5,17 @@ import os
 def prepare_input():
     try:
         CELEX = pd.read_csv("dpw.csv").drop(labels=["IdNum", "Inl", "IdNumLemma","PhonCVBR", "PhonSylBCLX"], axis=1).drop_duplicates().rename(columns={"Word":"Lemma"})
-    except:
+    except Exception:
         print("dpw.csv not correctly formatted.")
         quit()
     try:
         df_singulars = pd.read_csv("lexicon_singulars.csv").drop(labels=["Frequency"], axis=1)
-    except:
+    except Exception:
         print("lexicon_singulars.csv not correctly formatted.")
         quit()
     try:
         df_plurals = pd.read_csv("lexicon_plurals.csv").drop_duplicates()
-    except:
+    except Exception:
         print("lexicon_plurals.csv not correctly formatted.")
     singulars_plurals_df = pd.merge(df_plurals, df_singulars, on="Lemma", how="inner")
     input_df = pd.merge(singulars_plurals_df, CELEX, on="Lemma", how="inner")
@@ -33,10 +33,11 @@ def parse_phonetic_transcription(input_df):
         syllables = description.split("-")
         for syllable in syllables:
             if "'" in syllable:
-                output_dict_stress[description] += "+"
+                output_dict_stress[description].append("+")
             else:
-                output_dict_stress[description] += "-"
-            syllable = syllable.removeprefix("'")
+                output_dict_stress[description].append("-")
+            if syllable.startswith("'"):
+                syllable = syllable[1:]
             parts = pattern.split(syllable)
             parts = [p for p in parts if p]
             if parts[0] in DISC_vowels:
@@ -50,11 +51,11 @@ def padding (output_dict_stress, output_dict_transcription):
     max_len_stress = max(len(v) for v in output_dict_stress.values())
     max_len_trans = max(len(v) for v in output_dict_transcription.values())
     for description in output_dict_stress:
-        padding = ["-"] * (max_len_stress - len(output_dict_stress[description]))
-        output_dict_stress[description] = padding + output_dict_stress[description]
+        pad_stress = ["-"] * (max_len_stress - len(output_dict_stress[description]))
+        output_dict_stress[description] = pad_stress + output_dict_stress[description]
     for description in output_dict_transcription:
-        padding = ["="] * (max_len_trans - len(output_dict_transcription[description]))
-        output_dict_transcription[description] = padding + output_dict_transcription[description]
+        pad_trans = ["="] * (max_len_trans - len(output_dict_transcription[description]))
+        output_dict_transcription[description] = pad_trans + output_dict_transcription[description]
     return output_dict_stress, output_dict_transcription
 
 def merge_output(output_dict_stress, output_dict_transcription, input_df, stress_limiter, syllable_limiter):
