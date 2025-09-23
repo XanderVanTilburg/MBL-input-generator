@@ -1,8 +1,6 @@
-# Ignore CELEX files for copyright reasons
-phon_wordforms.csv
-
-# Ignore CGN files for copright reasons
-plurals_regular.txt
+# Ignore CELEX and CGN files for copyright reasons
+*.csv
+*.cd
 
 # Ignore Desktop Services Store
 .DS_Store
