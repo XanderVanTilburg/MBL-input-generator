@@ -63,6 +63,13 @@ def merge_output(output_dict_stress, output_dict_transcription, input_df, stress
     input_df = pd.merge(input_df, stress_transcriptions_df, on="PhonStrsDISC", how="right")
     return input_df
 
+def underspecification(input_df):
+    last_syllable = input_df.columns[-1]
+    input_df[last_syllable] = input_df[last_syllable].apply(lambda x: x[:-1] + "?" if x.endswith(("d","t")) else x)
+    input_df[last_syllable] = input_df[last_syllable].apply(lambda x: x[:-1] + "€" if x.endswith(("x","G")) else x)
+    input_df[last_syllable] = input_df[last_syllable].apply(lambda x: x[:-1] + "£" if x.endswith(("p","b")) else x)
+    return input_df
+
 def final_letter(input_df):
     input_df["Final_letter"] = input_df["Word"].str[-1]
     return input_df
@@ -83,6 +90,10 @@ if __name__ == "__main__":
         if syllable_limiter.isdigit() or syllable_limiter.upper() == "ALL":
             break
     while True:
+        underspecificationsetting = input("Use underspecification for word-final obstruents (y/n): ")
+        if underspecificationsetting in ("y","n"):
+            break
+    while True:
         finallettersetting = input("Include final letter (y/n): ")
         if finallettersetting in ("y","n"):
             break
@@ -93,6 +104,8 @@ if __name__ == "__main__":
     stress_dict, transcription_dict = parse_phonetic_transcription(input_df)
     stress_dict, transcription_dict = padding(stress_dict, transcription_dict)
     input_df = merge_output(stress_dict, transcription_dict, input_df, stress_limiter, syllable_limiter)
+    if underspecificationsetting == "y":
+        input_df = underspecification(input_df)
     if finallettersetting == "y":
         input_df = final_letter(input_df)
     input_df.to_csv(path_or_buf=path_output, header=False, index=False)
