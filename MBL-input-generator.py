@@ -21,10 +21,14 @@ def prepare_input():
         df_plurals = pd.read_csv("lexicon_plurals.csv").drop_duplicates()
     except Exception:
         print("lexicon_plurals.csv not correctly formatted.")
-    CELEX_phon_wordclass = pd.merge(CELEX_phon, CELEX_synt, on="IdNum", how="left")
+    CELEX_phon_wordclass = pd.merge(CELEX_phon, CELEX_synt, on="IdNum", how="inner")
     CELEX_phon_nouns = CELEX_phon_wordclass[CELEX_phon_wordclass["ClassNum"] == 1].drop(labels=["IdNum","ClassNum"], axis=1)
+    CELEX_phon_nouns["Lemma"] = CELEX_phon_nouns["Lemma"].str.lower()
+    CELEX_phon_nouns.drop_duplicates(inplace=True)
     singulars_plurals_df = pd.merge(df_plurals, df_singulars, on="Lemma", how="inner")
     input_df = pd.merge(singulars_plurals_df, CELEX_phon_nouns, on="Lemma", how="inner")
+    input_df["Word"] = input_df["Word"].str.lower()
+    input_df.drop_duplicates(inplace=True)
     return input_df
 
 def parse_phonetic_transcription(input_df):
@@ -93,16 +97,38 @@ def final_letter(input_df):
     input_df["Final_letter"] = input_df["Lemma"].str[-1]
     return input_df
 
-def find_plural(input_df):
+def find_plural(input_df, keepirregulars):
     input_df["Plural"] = input_df["Word"].apply(lambda x: "S" if x.endswith("s") else ("EN" if x.endswith(("en","n")) else "IRR"))
-    input_df = input_df.drop(input_df[input_df.Plural == "IRR"].index)
-    input_df["Word"] = input_df["Word"].str.lower()
-    input_df = input_df.drop_duplicates()
-    plural_groups = input_df.groupby("Lemma")["Plural"].agg(lambda x: set(x))
-    var_lemmas = plural_groups[plural_groups.apply(lambda x: "S" in x and "EN" in x)].index
-    input_df.loc[input_df["Lemma"].isin(var_lemmas), "Plural"] = "VAR"
-    input_df = input_df.drop(labels=["Word"], axis=1).drop_duplicates()
+    if keepirregulars == "n":
+        input_df = input_df.drop(input_df[input_df.Plural == "IRR"].index)
     return input_df
+
+def var_plural_finder(input_df, var_plural_checker):
+   plural_groups = input_df.groupby("Lemma")["Plural"].agg(lambda x: set(x))
+   var_lemmas = plural_groups[plural_groups.apply(lambda x: "S" in x and "EN" in x)].index
+   input_df.loc[input_df["Lemma"].isin(var_lemmas), "Plural"] = "VAR"
+   if var_plural_checker == "y":
+        for idx, row in input_df.iterrows():
+            if row["Plural"] == "VAR":
+                while True:
+                    keepbool = input(f"Keep '{row["Word"]}' as a plural of '{row["Lemma"]}' (y/n): ").lower().strip()
+                    if keepbool in ("y","n"):
+                        break
+                if keepbool == "n":
+                    input_df.at[idx, "Plural"] = "Remove"
+        deleted = input_df[input_df["Plural"] == "Remove"].drop(labels=["Plural"], axis=1)
+        deleted.to_csv(path_or_buf="deleted_plurals.csv")
+        input_df = input_df[input_df["Plural"] != "Remove"]
+        for lemma, group in input_df.groupby("Lemma"):
+            if len(group) == 1 and group["Plural"].iloc[0] == "VAR":
+                idx = group.index[0]
+                word = group["Word"].iloc[0]
+                input_df.at[idx, "Plural"] = "S" if word.endswith("s") else "EN"
+   input_df = input_df.drop(labels=["Word"], axis=1).drop_duplicates()
+   variable_plurals = input_df[input_df["Plural"] == "VAR"]
+   variable_plurals = variable_plurals.iloc[:,:1]
+   variable_plurals.to_csv(path_or_buf="variable_plurals.csv", index=False, header=False)
+   return input_df
 
 if __name__ == "__main__":
     if not os.path.exists("dpw.csv"):
@@ -124,16 +150,24 @@ if __name__ == "__main__":
         if syllable_limiter.isdigit() or syllable_limiter.upper() == "ALL":
             break
     while True:
-        variablepronunciationsetting = input("Collapse variable pronunciations (y/n): ")
-        if variablepronunciationsetting.lower() in ("y","n"):
+        variablepronunciationsetting = input("Collapse variable pronunciations (y/n): ").lower()
+        if variablepronunciationsetting in ("y","n"):
             break
     while True:
-        underspecificationsetting = input("Use underspecification for word-final obstruents (y/n): ")
-        if underspecificationsetting.lower() in ("y","n"):
+        underspecificationsetting = input("Use underspecification for word-final obstruents (y/n): ").lower()
+        if underspecificationsetting in ("y","n"):
             break
     while True:
-        finallettersetting = input("Include final letter (y/n): ")
-        if finallettersetting.lower() in ("y","n"):
+        finallettersetting = input("Include final letter (y/n): ").lower()
+        if finallettersetting in ("y","n"):
+            break
+    while True:
+        keepirregulars = input("Keep irregular plurals (y/n): ").lower()
+        if keepirregulars in ("y","n"):
+            break
+    while True:
+        var_plural_checker = input("Manually check variable plurals (y/n): ").lower()
+        if var_plural_checker in ("y","n"):
             break
     path_output = input("Name of output file: ").strip().strip('"').strip("'")
     if not path_output.lower().endswith(".csv"):
@@ -142,12 +176,13 @@ if __name__ == "__main__":
     stress_dict, transcription_dict = parse_phonetic_transcription(input_df)
     stress_dict, transcription_dict = padding(stress_dict, transcription_dict)
     input_df = merge_output(stress_dict, transcription_dict, input_df, stress_limiter, syllable_limiter)
-    if variablepronunciationsetting.lower() == "y":
+    if variablepronunciationsetting == "y":
         input_df = remove_variable_pronunciation(input_df)
-    if underspecificationsetting.lower() == "y":
+    if underspecificationsetting == "y":
         input_df = underspecification(input_df)
-    if finallettersetting.lower() == "y":
+    if finallettersetting == "y":
         input_df = final_letter(input_df)
-    input_df = find_plural(input_df)
+    input_df = find_plural(input_df, keepirregulars)
+    input_df = var_plural_finder(input_df, var_plural_checker)
     input_df.to_csv(path_or_buf=path_output, header=False, index=False)
     print(f"Finished successfully. Output written to {path_output}")

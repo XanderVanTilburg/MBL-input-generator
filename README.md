@@ -15,3 +15,7 @@ Settings:
 - Collapsing variable pronunciations. When CELEX contains more than one possible pronunciation for a word, these words will appear more than once in the dataset. This can produce unwanted behavior for the memory-based learners. When multiple pronunciations are collapsed, the first reported pronunciation of a word in CELEX is retained and all other transcriptions are discarded.
 - Using underspecification for word-final obstruents [THIS FUNCTION CURRENTLY DOES NOTHING, AS WORD-FINAL OBSTRUENT DEVOICING IS ALREADY INCORPORATED IN THE PHONETIC TRANSCRIPTIONS].
 - Including the final letter of the word. This provides limited orthographic information to memory-based learners, which could improve their predictions.
+
+To do:
+- Check function of underspecification
+- Rewrite find_plural using DataFrame.drop_duplicates(subset) (https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.drop_duplicates.html)
