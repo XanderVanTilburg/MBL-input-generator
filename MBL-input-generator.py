@@ -97,15 +97,14 @@ def remove_variable_pronunciation(input_df):
     input_df = pd.concat([input_df, variable_pronunciations], axis=0)
     return input_df
 
-def underspecification(input_df):
-    last_syllable = input_df.columns[-1]
-    input_df[last_syllable] = input_df[last_syllable].apply(lambda x: x[:-1] + "?" if x.endswith(("d","t")) else x)
-    input_df[last_syllable] = input_df[last_syllable].apply(lambda x: x[:-1] + "€" if x.endswith(("x","G")) else x)
-    input_df[last_syllable] = input_df[last_syllable].apply(lambda x: x[:-1] + "£" if x.endswith(("p","b")) else x)
-    return input_df
-
 def final_letter(input_df):
     input_df["Final_letter"] = input_df["Lemma"].str[-1]
+    return input_df
+
+def underspecification(input_df):
+    input_df["Final_letter"] = input_df["Lemma"].apply(lambda x: "€" if x.endswith(("ch","g")) else x[-1:])    
+    input_df["Final_letter"] = input_df["Final_letter"].apply(lambda x: "?" if x in ("d","t") else x)
+    input_df["Final_letter"] = input_df["Final_letter"].apply(lambda x: "£" if x in ("p","b") else x)
     return input_df
 
 def plural_finder(input_df, irr_plural_checker, writeirrplurals, keepirregulars):
@@ -191,13 +190,14 @@ if __name__ == "__main__":
         if variablepronunciationsetting in ("y","n"):
             break
     while True:
-        underspecificationsetting = input("Use underspecification for word-final obstruents (y/n): ").lower()
-        if underspecificationsetting in ("y","n"):
-            break
-    while True:
         finallettersetting = input("Include final letter (y/n): ").lower()
         if finallettersetting in ("y","n"):
             break
+    if finallettersetting == "y":
+        while True:
+            underspecificationsetting = input("Use underspecification for letters representing word-final obstruents (y/n): ").lower()
+            if underspecificationsetting in ("y","n"):
+                break
     while True:
         irr_plural_checker = input("Manually check irregular plurals (y/n): ").lower()
         if irr_plural_checker in ("y","n"):
@@ -231,10 +231,10 @@ if __name__ == "__main__":
     input_df = merge_output(stress_dict, transcription_dict, input_df, stress_limiter, syllable_limiter)
     if variablepronunciationsetting == "y":
         input_df = remove_variable_pronunciation(input_df)
+    if finallettersetting == "y" and underspecificationsetting == "n":
+        input_df = final_letter(input_df)
     if underspecificationsetting == "y":
         input_df = underspecification(input_df)
-    if finallettersetting == "y":
-        input_df = final_letter(input_df)
     input_df = plural_finder(input_df, irr_plural_checker, writeirrplurals, keepirregulars)
     input_df = var_plural_finder(input_df, var_plural_checker, writevarplurals, keepvariables)
     input_df.to_csv(path_or_buf=path_output, header=False, index=False)

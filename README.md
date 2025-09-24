@@ -13,8 +13,8 @@ Settings:
 - The number of syllables for which the stress pattern is reported. When X is passed, the script will return the stress pattern for the last X syllables of each word. When ALL is passed, the script will return the stress pattern for all syllables of each word. This variable is coded in a way that all words will align, which means that for each word that does not contain the same amount of syllables as the word with the most syllables in the input file, a number of dummy unstressed syllables will be inserted in the dataset equal to the difference.
 - The number of syllables for which the transcription is reported. This setting behaves the same as the setting for reporting stress patterns.
 - Collapsing variable pronunciations. When CELEX contains more than one possible pronunciation for a word, these words will appear more than once in the dataset. This can produce unwanted behavior for the memory-based learners. When multiple pronunciations are collapsed, the first reported pronunciation of a word in CELEX is retained and all other transcriptions are discarded.
-- Using underspecification for word-final obstruents [THIS FUNCTION CURRENTLY DOES NOTHING, AS WORD-FINAL OBSTRUENT DEVOICING IS ALREADY INCORPORATED IN THE PHONETIC TRANSCRIPTIONS].
 - Including the final letter of the word. This provides limited orthographic information to memory-based learners, which could improve their predictions.
+- Using underspecification for letters representing word-final obstruents. Word-final obstruents are always devoiced in Dutch. To prevent the memory-based learner from relying too much on the final letter of words with a word-final obstruent, this setting will collapse all graphemes representing a voiced/voiceless obstruent pair into an separate symbol.
 
 To do:
 - Check function of underspecification
