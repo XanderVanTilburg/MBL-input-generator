@@ -103,7 +103,7 @@ def find_plural(input_df, keepirregulars):
         input_df = input_df.drop(input_df[input_df.Plural == "IRR"].index)
     return input_df
 
-def var_plural_finder(input_df, var_plural_checker):
+def var_plural_finder(input_df, var_plural_checker, writevarplurals):
    plural_groups = input_df.groupby("Lemma")["Plural"].agg(lambda x: set(x))
    var_lemmas = plural_groups[plural_groups.apply(lambda x: "S" in x and "EN" in x)].index
    input_df.loc[input_df["Lemma"].isin(var_lemmas), "Plural"] = "VAR"
@@ -125,9 +125,10 @@ def var_plural_finder(input_df, var_plural_checker):
                 word = group["Word"].iloc[0]
                 input_df.at[idx, "Plural"] = "S" if word.endswith("s") else "EN"
    input_df = input_df.drop(labels=["Word"], axis=1).drop_duplicates()
-   variable_plurals = input_df[input_df["Plural"] == "VAR"]
-   variable_plurals = variable_plurals.iloc[:,:1]
-   variable_plurals.to_csv(path_or_buf="variable_plurals.csv", index=False, header=False)
+   if writevarplurals == "y":
+        variable_plurals = input_df[input_df["Plural"] == "VAR"]
+        variable_plurals = variable_plurals.iloc[:,:1]
+        variable_plurals.to_csv(path_or_buf="variable_plurals.csv", index=False, header=False)
    return input_df
 
 if __name__ == "__main__":
@@ -169,6 +170,10 @@ if __name__ == "__main__":
         var_plural_checker = input("Manually check variable plurals (y/n): ").lower()
         if var_plural_checker in ("y","n"):
             break
+    while True:
+        writevarplurals = input("Write variable plurals to separate file (y/n): ").lower()
+        if writevarplurals in ("y","n"):
+            break
     path_output = input("Name of output file: ").strip().strip('"').strip("'")
     if not path_output.lower().endswith(".csv"):
         path_output += ".csv"
@@ -183,6 +188,6 @@ if __name__ == "__main__":
     if finallettersetting == "y":
         input_df = final_letter(input_df)
     input_df = find_plural(input_df, keepirregulars)
-    input_df = var_plural_finder(input_df, var_plural_checker)
+    input_df = var_plural_finder(input_df, var_plural_checker, writevarplurals)
     input_df.to_csv(path_or_buf=path_output, header=False, index=False)
     print(f"Finished successfully. Output written to {path_output}")
