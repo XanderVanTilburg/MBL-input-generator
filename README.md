@@ -18,4 +18,4 @@ Settings:
 
 To do:
 - Check function of underspecification
-- Rewrite find_plural using DataFrame.drop_duplicates(subset) (https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.drop_duplicates.html)
+- Find a way to exclude 'irregular' plurals like 'ei/eieren' and 'kind/kinderen'
