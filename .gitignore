@@ -2,5 +2,8 @@
 *.csv
 *.cd
 
+# Ignore TiMBL output files
+*.out
+
 # Ignore Desktop Services Store
 .DS_Store
