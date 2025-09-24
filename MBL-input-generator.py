@@ -4,10 +4,14 @@ import os
 
 def prepare_input():
     try:
-        CELEX = pd.read_csv("dpw.csv").drop(labels=["IdNum", "Inl", "IdNumLemma","PhonCVBR", "PhonSylBCLX"], axis=1).drop_duplicates().rename(columns={"Word":"Lemma"})
+        CELEX_phon = pd.read_csv("dpw.csv").drop(labels=["IdNum", "Inl","PhonCVBR", "PhonSylBCLX"], axis=1).rename(columns={"Word":"Lemma", "IdNumLemma":"IdNum"})
     except Exception:
         print("dpw.csv not correctly formatted.")
         quit()
+    try:
+        CELEX_synt = pd.read_csv("dsl.csv").drop(labels=["Head","Inl","GendNum", "DeHetNum","PropNum","AuxNum","SubClassVNum","SubCatNum","AdvNum","CardOrdNum","SubClassPNum"], axis=1)
+    except Exception:
+        print("dsl.csv not correctly formatted.")
     try:
         df_singulars = pd.read_csv("lexicon_singulars.csv").drop(labels=["Frequency"], axis=1)
     except Exception:
@@ -17,8 +21,10 @@ def prepare_input():
         df_plurals = pd.read_csv("lexicon_plurals.csv").drop_duplicates()
     except Exception:
         print("lexicon_plurals.csv not correctly formatted.")
+    CELEX_phon_wordclass = pd.merge(CELEX_phon, CELEX_synt, on="IdNum", how="left")
+    CELEX_phon_nouns = CELEX_phon_wordclass[CELEX_phon_wordclass["ClassNum"] == 1].drop(labels=["IdNum","ClassNum"], axis=1)
     singulars_plurals_df = pd.merge(df_plurals, df_singulars, on="Lemma", how="inner")
-    input_df = pd.merge(singulars_plurals_df, CELEX, on="Lemma", how="inner")
+    input_df = pd.merge(singulars_plurals_df, CELEX_phon_nouns, on="Lemma", how="inner")
     return input_df
 
 def parse_phonetic_transcription(input_df):
@@ -101,11 +107,13 @@ def find_plural(input_df):
 if __name__ == "__main__":
     if not os.path.exists("dpw.csv"):
         print("Could not find dpw.csv")
+    if not os.path.exists("dsl.csv"):
+        print("Could not find dsl.csv")
     if not os.path.exists("lexicon_singulars.csv"):
         print("Could not find lexicon_singulars.csv")
     if not os.path.exists("lexicon_plurals.csv"):
         print("Could not find lexicon_plurals.csv")
-    if not os.path.exists("dpw.csv") or not os.path.exists("lexicon_singulars.csv") or not os.path.exists("lexicon_plurals.csv"):
+    if not os.path.exists("dpw.csv") or not os.path.exists("dsl.csv") or not os.path.exists("lexicon_singulars.csv") or not os.path.exists("lexicon_plurals.csv"):
         quit()
     while True:
         stress_limiter = input("Number of syllables in stress analysis (number/ALL): ")
