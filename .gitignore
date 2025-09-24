@@ -1,4 +1,4 @@
-# Ignore CELEX and CGN files for copyright reasons
+# Ignore CELEX and CGN files for copyright reasons, and output files to reduce clutter
 *.csv
 *.cd
 
