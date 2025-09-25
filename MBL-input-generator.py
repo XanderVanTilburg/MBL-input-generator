@@ -36,7 +36,7 @@ def prepare_input():
     singulars_plurals_df = pd.merge(df_plurals, df_singulars, on="Lemma", how="inner")
     input_df = pd.merge(singulars_plurals_df, CELEX_phon_nouns, on="Lemma", how="inner")
     input_df = pd.merge(input_df, CELEX_morph, on="Lemma", how="inner")
-    input_df = input_df[input_df["MorphStatus"] == "M"]
+    input_df = input_df[input_df["MorphStatus"] != "C"]
     input_df = input_df.drop(labels=["MorphStatus"], axis=1)
     input_df["Word"] = input_df["Word"].str.lower()
     input_df.drop_duplicates(inplace=True)
@@ -112,6 +112,7 @@ def underspecification(input_df):
     return input_df
 
 def plural_finder(input_df, irr_plural_checker, writeirrplurals, keepirregulars):
+    input_df["Word"] = input_df["Word"].astype(str)
     input_df["Plural"] = input_df["Word"].apply(lambda x: "S" if x.endswith("s") else ("EN" if x.endswith(("en","n")) else "IRR"))
     if irr_plural_checker == "y":
         for idx, row in input_df.iterrows():
@@ -125,11 +126,6 @@ def plural_finder(input_df, irr_plural_checker, writeirrplurals, keepirregulars)
         deleted = input_df[input_df["Plural"] == "Remove"].iloc[:,:1]
         deleted.to_csv(path_or_buf="deleted_plurals.csv", mode="a", index=False, header=False)
         input_df = input_df[input_df["Plural"] != "Remove"]
-        for lemma, group in input_df.groupby("Lemma"):
-            if len(group) == 1 and group["Plural"].iloc[0] == "IRR":
-                idx = group.index[0]
-                word = group["Word"].iloc[0]
-                input_df.at[idx, "Plural"] = "S" if word.endswith("s") else "EN"
     if writeirrplurals == "y":
         irregular_plurals = input_df[input_df["Plural"] == "IRR"]
         irregular_plurals = irregular_plurals.iloc[:,:1]
