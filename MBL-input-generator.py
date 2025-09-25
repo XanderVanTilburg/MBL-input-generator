@@ -40,6 +40,10 @@ def prepare_input():
     input_df = input_df.drop(labels=["MorphStatus"], axis=1)
     input_df["Word"] = input_df["Word"].str.lower()
     input_df.drop_duplicates(inplace=True)
+    CELEX_phon_nouns.rename(columns={"Lemma":"Word"}, inplace=True)
+    input_df = pd.merge(input_df, CELEX_phon_nouns, on="Word", how="inner")
+# Temporarily remove pronunciation of plural again because it is not correctly implemented yet    
+    input_df.drop(columns=["PhonStrsDISC_y"], inplace=True)
     return input_df
 
 def parse_phonetic_transcription(input_df):
@@ -47,7 +51,7 @@ def parse_phonetic_transcription(input_df):
     pattern = re.compile(f"({'|'.join(re.escape(v) for v in DISC_vowels)})")
     output_dict_stress = {}
     output_dict_transcription = {}
-    for description in input_df["PhonStrsDISC"]:
+    for description in input_df["PhonStrsDISC_x"]:
         description = str(description)
         output_dict_stress[description] = []
         output_dict_transcription[description] = []
@@ -86,13 +90,13 @@ def merge_output(output_dict_stress, output_dict_transcription, input_df, stress
         df_stress = df_stress.drop(columns=df_stress.columns[:len(df_stress.columns)-int(stress_limiter)])
     if syllable_limiter.upper() != "ALL" and len(df_transcription.columns)/3 > int(syllable_limiter):
         df_transcription = df_transcription.drop(columns=df_transcription.columns[:len(df_transcription.columns)-(3*int(syllable_limiter))])
-    stress_transcriptions_df = pd.merge(df_stress, df_transcription, left_index=True, right_index=True, how="left").reset_index().rename(columns={"index":"PhonStrsDISC"})
-    input_df = pd.merge(input_df, stress_transcriptions_df, on="PhonStrsDISC", how="right")
+    stress_transcriptions_df = pd.merge(df_stress, df_transcription, left_index=True, right_index=True, how="left").reset_index().rename(columns={"index":"PhonStrsDISC_x"})
+    input_df = pd.merge(input_df, stress_transcriptions_df, on="PhonStrsDISC_x", how="right")
     return input_df
 
 def remove_variable_pronunciation(input_df):
-    variable_pronunciations = input_df.groupby("Lemma").filter(lambda g: g["PhonStrsDISC"].nunique() > 1).reset_index(drop=True)
-    input_df = input_df.groupby("Lemma").filter(lambda g: g["PhonStrsDISC"].nunique() == 1).reset_index(drop=True)
+    variable_pronunciations = input_df.groupby("Lemma").filter(lambda g: g["PhonStrsDISC_x"].nunique() > 1).reset_index(drop=True)
+    input_df = input_df.groupby("Lemma").filter(lambda g: g["PhonStrsDISC_x"].nunique() == 1).reset_index(drop=True)
     variable_pronunciations = variable_pronunciations.drop_duplicates(subset=["Lemma"], keep="first").reset_index(drop=True)
     input_df = pd.concat([input_df, variable_pronunciations], axis=0)
     return input_df
@@ -191,6 +195,7 @@ if __name__ == "__main__":
             break
     while True:
         finallettersetting = input("Include final letter (y/n): ").lower()
+        underspecificationsetting = ""
         if finallettersetting in ("y","n"):
             break
     if finallettersetting == "y":
